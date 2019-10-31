@@ -3,6 +3,7 @@
 #include "random.h"
 #include "simulation.h"
 
+
 RandomNumbers *_RNG = new RandomNumbers(101301091);
 Network net;
 Neuron n1, n2;

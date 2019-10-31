@@ -62,6 +62,37 @@ size_t Network::random_connect(const double &mean_deg, const double &mean_streng
     return num_links;
 }
 
+std::pair<size_t, double> Network::degree(const size_t& n) const {
+	std::vector<std::pair<size_t, double> > linked = neighbors(n);
+	double sum = 0.0;
+	if(linked.size() > 0) {
+	for(auto p : linked) {
+		sum += p.second;
+	}
+}
+	std::pair<size_t, double> result;
+	result.first = linked.size();
+	result.second = sum;
+	
+	return result;
+	
+}
+
+std::vector<std::pair<size_t, double> > Network::neighbors(const size_t& n) const {
+
+	std::vector<std::pair<size_t, double> > neighs;
+	
+	auto itlow = links.lower_bound(std::make_pair(n,0));
+	
+	while(itlow -> first.first == n and itlow -> first.second <= neurons.size() - 1) {
+		neighs.push_back(std::make_pair(itlow -> first.second,itlow -> second));
+	++itlow;
+     }
+
+	return neighs;
+	
+}
+
 std::vector<double> Network::potentials() const {
     std::vector<double> vals;
     for (size_t nn=0; nn<size(); nn++)
@@ -74,6 +105,48 @@ std::vector<double> Network::recoveries() const {
     for (size_t nn=0; nn<size(); nn++)
         vals.push_back(neurons[nn].recovery());
     return vals;
+}
+
+std::set<size_t> Network::step(const std::vector<double>& tab) {
+	std::set<size_t> result;
+	if(neurons.size() >0) {
+	for(size_t i=0; i<neurons.size(); ++i) {
+	double w(1.0);
+	double sum1(0.0);
+	double sum2(0.0);
+
+	if(neurons[i].is_inhibitory()) {
+		 w = 0.4;
+	}
+				
+	std::vector<std::pair<size_t, double> > nei = neighbors(i);
+	
+	if(nei.size() > 0) {
+		for(auto p : nei) {
+			if(neurons[p.first].firing()) {
+				if(neurons[p.first].is_inhibitory()){
+				  sum2 += p.second;
+				}else{
+				  sum1 += p.second;
+				}
+		    }
+		}
+	}
+		neurons[i].input(w*tab[i] + 0.5*sum1 + sum2);
+	}
+
+	
+	for(size_t i=0; i<neurons.size(); ++i) {
+		
+		if(neurons[i].firing()) {
+			result.insert(i);
+			neurons[i].reset();
+		}
+			neurons[i].step();
+	}
+}
+	return result;
+
 }
 
 void Network::print_params(std::ostream *_out) {
